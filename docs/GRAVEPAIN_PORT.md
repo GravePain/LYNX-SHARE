@@ -22,6 +22,15 @@ already does the job. Branch `gravepain-features`.
   `LYNX_TEST=gp_ build-local/lynx_tests` runs them alone. The tools step fails to link `renderwav` (winmm's
   `timeBeginPeriod` on Windows) after the test binary is built; also an environment artefact.
   The rule kept for every commit: the same 24 failed checks, nothing new.
+- Flaky upstream test: `vfx_script_late_answers_play_at_the_next_block` (`tests/VfxScript165Tests.inc:399-400`)
+  depends on a script thread answering within its 5 ms sleeps; on this machine it fails about 1 run in 5 (run alone,
+  5 runs: 4 pass). Not touched by the port; counted as pre-existing.
+
+## Test counts
+
+| After | Port checks (`LYNX_TEST=gp_`) | Full run |
+|---|---|---|
+| Steps 1-4 | 7679, 0 failures | the baseline's 24 failed checks (+ the flaky VfxScript pair once), nothing new |
 
 ## Step 1: scales and chords core
 
