@@ -219,6 +219,9 @@ target_sources(lynx_core PRIVATE
     src/core/NoteTools.cpp
     src/core/PianoRollTools.cpp
     src/core/Scales.cpp
+    src/core/SmfRead.cpp
+    src/core/MidiPatterns.cpp
+    src/core/PatternTaste.cpp
     src/core/EventEdit.cpp
     src/core/AudioEdit.cpp
     src/core/AudioEditTools.cpp
