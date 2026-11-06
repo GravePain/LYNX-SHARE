@@ -19,7 +19,11 @@ VERSION="$(sed -n 's/^project(LYNX VERSION \([0-9]*\.[0-9]*\.[0-9]*\).*/\1/p' CM
 mkdir -p "$OUT/juce" "$OUT/app" "$OUT/shim"
 
 # MinGW headers are lowercase; JUCE includes some with capitals (on Windows it does not matter).
-echo '#include <dbghelp.h>' > "$OUT/shim/Dbghelp.h"
+# (only on a case-sensitive file system: on Windows the shim would include itself)
+touch "$OUT/shim/.case"
+if [[ -e "$OUT/shim/.CASE" ]]; then rm -f "$OUT/shim/Dbghelp.h"; else echo '#include <dbghelp.h>' > "$OUT/shim/Dbghelp.h"; fi
+rm -f "$OUT/shim/.case"
+SHIM_FILES="$(ls "$OUT/shim/Dbghelp.h" 2>/dev/null || true)"
 
 MODULES=(juce_core juce_data_structures juce_events juce_graphics juce_gui_basics juce_gui_extra
          juce_audio_basics juce_audio_devices juce_audio_formats juce_audio_processors juce_audio_utils juce_dsp juce_opengl)
@@ -120,7 +124,7 @@ cached_pp() {
     [[ -n "$h" && "$h" != e3b0c44298fc1c14* ]] || { "$@"; return; }
     cached "$obj" "pp=$h" -- "$@"
 }
-JUCE_KEY="$JUCE_DIR $(cat "$OUT/JuceConfig.h" cmake/mingw/mingw_compat.h "$OUT/shim/Dbghelp.h" "$JUCE_DIR/modules/juce_core/system/juce_StandardHeader.h" | sha256sum | cut -c1-64)"
+JUCE_KEY="$JUCE_DIR $(cat "$OUT/JuceConfig.h" cmake/mingw/mingw_compat.h $SHIM_FILES"$JUCE_DIR/modules/juce_core/system/juce_StandardHeader.h" | sha256sum | cut -c1-64)"
 GUI_BASICS_KEY="$(tree_hash "$GUI_BASICS_SRC")"
 AUDIO_PROCESSORS_KEY="$(tree_hash "$AUDIO_PROCESSORS_SRC")"
 EVENTS_KEY="$(tree_hash "$EVENTS_SRC")"
@@ -314,7 +318,9 @@ IFS=. read -r VMAJ VMIN VPAT <<< "$VERSION"
     echo "#define LYNX_VERSION_PATCH $VPAT"
     echo "#define LYNX_VERSION_STR \"$VERSION\""
 } > "$OUT/lynx_version.h"
-( cd resources && "$ZIG" rc /i "$OUT_ABS" /fo "$OUT_ABS/LYNX.res" LYNX.rc )
+# (on a Windows host's Git Bash, MSYS would turn "/i" into a drive path: no argument conversion, Windows paths)
+RC_OUT="$(cygpath -m "$OUT_ABS" 2>/dev/null || echo "$OUT_ABS")"
+( cd resources && MSYS2_ARG_CONV_EXCL='*' "$ZIG" rc /i "$RC_OUT" /fo "$RC_OUT/LYNX.res" LYNX.rc )
 
 echo "Linking..."
 # only the objects of this tree's sources: an object left in $OUT/app by a build of another branch (a merge-train
