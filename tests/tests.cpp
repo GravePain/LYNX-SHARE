@@ -13951,6 +13951,8 @@ TEST (fruity_phaser_engine)
 }
 
 // Workflow P2 (docs/WORKFLOW_FL.md)
+// GravePain port (docs/GRAVEPAIN_PORT.md)
+#include "GravepainScalesTests.inc"
 #include "WorkflowP2Tests.inc"
 // Editor mouse grammar (Piano Roll / Playlist)
 #include "EditorGestureTests.inc"
