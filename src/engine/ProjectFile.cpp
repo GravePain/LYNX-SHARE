@@ -2017,6 +2017,8 @@ juce::String toJson (const Song& song)
             o->setProperty ("loopOn", true);
         if (! p.loopStarterGenre.empty()) // FL's Loop Starter genre (round 168b)
             o->setProperty ("loopStarterGenre", str (p.loopStarterGenre));
+        if (! p.toolSettings.empty()) // the Piano Roll tools' settings: chord lane, dice, riff stages (GravePain port)
+            o->setProperty ("toolSettings", str (p.toolSettings));
         if (p.loopMode != RackLoopMode::steps)
             o->setProperty ("loopMode", (int) p.loopMode);
         if (! p.channelLoops.empty())
@@ -2400,6 +2402,7 @@ std::optional<Song> fromJson (const juce::String& json, juce::String& error)
 
             pattern.loopOn = (bool) p.getProperty ("loopOn", false);
             pattern.loopStarterGenre = p.getProperty ("loopStarterGenre", "").toString().toStdString();
+            pattern.toolSettings = p.getProperty ("toolSettings", "").toString().toStdString();
             pattern.loopMode = (RackLoopMode) juce::jlimit (1, 3, (int) p.getProperty ("loopMode", 1));
             if (auto* loops = p["channelLoops"].getArray())
                 for (const auto& l : *loops)

@@ -1213,6 +1213,7 @@ struct Pattern
     // round 168g): plain markers, time signature changes, Loop length (11), Pattern length (6)... sorted by tick
     std::vector<Marker> markers;
     std::string loopStarterGenre; // FL's Loop Starter genre of this pattern (round 168b); "" = no Loop Starter
+    std::string toolSettings;     // Piano Roll tools' settings kept with the pattern ("[section]" blocks: chord lane, dice seeds, riff stages; GravePain port)
 
     void sortNotes();
     std::int64_t effectiveLength (int beatsPerBar) const noexcept;
