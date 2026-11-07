@@ -123,3 +123,27 @@ pitches in reverse order; turn pitch over about the key's home, staying in the k
 first, then wander louder and quieter, or only quieter, and vary the lengths), **Articulation** (multiply the lengths up
 to 4x, take a gap off every note, vary them, chop held notes into repeats on the grid) and **Groove** (straight, swing
 8ths, swing 16ths, laid back or pushed, by a timing amount). For an arpeggio, use **Tools › Arpeggiate**.
+
+## GravePain Synth
+
+LYNX's own subtractive and wavetable synthesiser. Add it from the Channel Rack's **+** menu (**GravePain Synth**). It
+comes with 51 sounds (leads, keys, basses, pads, plucks, stabs, bells, risers, impacts and a drum set): use the
+channel's preset arrows or its preset list, under LYNX.
+
+The channel window has five pages:
+
+- **Dials**: the sound's **Type** and its simple controls, named for what they do on that type of sound (a bass has
+  Bright, Squelch, Dirt, Sub, Wobble...; a pad Slow, Bright, Wide, Space, Motion...). A dial moves several settings
+  together; it shows where the sound sits, so loading a preset puts every dial in place. Every dial can be automated.
+- **Oscillators**: two oscillators (sine, triangle, saw, square, wavetable, stepped and pyramid shapes), each with a
+  wavetable position, up to 15 unison copies, sub, noise with a colour, FM, cross modulation and feedback, a sample
+  layer, voice mode (poly, mono, legato), glide and the clap retrigger.
+- **Filter and envelopes**: low pass (12 or 24 dB), band, high, notch, peak, blend and shelves, with drive and
+  saturation; filter, amplitude and pitch envelopes (the pitch envelope falls fast, or builds slowly for a riser).
+- **Modulation**: two LFOs, a poly LFO, a free envelope, a 16-step sequencer and an 8-slot matrix (source, target,
+  amount, and an optional second source scaling it).
+- **Effects**: drive and crush, chorus, delay (synced or in milliseconds, ping-pong), reverb, formant and stutter.
+
+The wavetables are LYNX's own (Basic shapes, PWM, Harmonics). For the sample layer, point the channel's sample at a
+folder of WAVs named with their note (`Piano C3.wav`, `F#4.wav`) or at a .wti file over WAVs. Helm presets (.helm) can
+be read into the synth's settings (what has no match in it is listed).

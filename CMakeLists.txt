@@ -224,6 +224,10 @@ target_sources(lynx_core PRIVATE
     src/core/PatternTaste.cpp
     src/core/ChordDice.cpp
     src/core/RiffStages.cpp
+    src/core/GpSynth.cpp
+    src/core/GpSynthBank.cpp
+    src/core/GpHelm.cpp
+    src/core/GpSynthLayout.cpp
     src/core/EventEdit.cpp
     src/core/AudioEdit.cpp
     src/core/AudioEditTools.cpp

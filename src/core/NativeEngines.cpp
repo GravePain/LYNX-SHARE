@@ -135,6 +135,7 @@ const std::vector<InstrumentEngine>& instrumentEngines()
         { InstrumentKind::slayer, "FL Slayer", "FL Slayer", fl, false },
         { InstrumentKind::granulizer, "Fruity Granulizer", "Fruity Granulizer", fl, false },
         { InstrumentKind::wavetraveller, "Wave Traveller", "Wave Traveller", own, false },
+        { InstrumentKind::gravepain, "GravePain Synth", "", own, false }, // LYNX's own (GravePain port)
         { InstrumentKind::drumaxx, "Drumaxx", "Drumaxx", fl, false },
         { InstrumentKind::drumpad, "Drumpad", "Drumpad", fl, false },
         { InstrumentKind::fruitkick, "Fruit Kick", "Fruit Kick", fl, false },

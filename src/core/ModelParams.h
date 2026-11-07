@@ -40,5 +40,6 @@ bool setValue01 (ChannelDef& channel, int index, float value);
 
 // Tables of the engines whose parameters are floats P[i] at an offset of their saved state
 Table toxicModelTable();
+Table gravepainModelTable(); // core/GpSynth.cpp: the GravePain Synth's patch in modelParams
 Table poizoneModelTable();
 } // namespace lynx::modelparams

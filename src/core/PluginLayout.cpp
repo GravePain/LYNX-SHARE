@@ -4237,6 +4237,8 @@ const Layout* instrumentLayout (InstrumentKind kind)
     }
     if (const auto* d = drumLayout (kind)) // round 168p (PluginLayoutDrums.inc)
         return d;
+    if (kind == InstrumentKind::gravepain) // the GravePain port (core/GpSynthLayout.cpp)
+        return gravepainLayout();
     switch (kind)
     {
         default: return synthGroupLayout (kind); // round 168o (core/PluginLayoutSynths.cpp)
@@ -4251,7 +4253,8 @@ const std::vector<InstrumentKind>& instrumentLayoutKinds()
                                                      InstrumentKind::beepmap, InstrumentKind::granulizer, InstrumentKind::wasp, // (round 168q)
                                                      // round 168p
                                                      InstrumentKind::fruitkick, InstrumentKind::plucked, InstrumentKind::drumpad, InstrumentKind::drumaxx,
-                                                     InstrumentKind::bassdrum, InstrumentKind::drumsynth, InstrumentKind::sakura, InstrumentKind::slayer };
+                                                     InstrumentKind::bassdrum, InstrumentKind::drumsynth, InstrumentKind::sakura, InstrumentKind::slayer,
+                                                     InstrumentKind::gravepain }; // (the GravePain port)
     static const std::vector<InstrumentKind> all = [] {
         auto k = kinds;
         for (const auto s : synthGroupLayoutKinds())

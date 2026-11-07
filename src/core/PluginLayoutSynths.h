@@ -14,4 +14,6 @@ namespace lynx::plugui
 // nullptr = not one of this group's engines
 const Layout* synthGroupLayout (InstrumentKind kind);
 const std::vector<InstrumentKind>& synthGroupLayoutKinds();
+// The GravePain Synth's page (core/GpSynthLayout.cpp; LYNX's own design)
+const Layout* gravepainLayout();
 } // namespace lynx::plugui

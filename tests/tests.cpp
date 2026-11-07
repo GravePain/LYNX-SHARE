@@ -13956,6 +13956,7 @@ TEST (fruity_phaser_engine)
 #include "GravepainPatternsTests.inc"
 #include "GravepainDiceTests.inc"
 #include "GravepainRiffTests.inc"
+#include "GravepainSynthTests.inc"
 #include "WorkflowP2Tests.inc"
 // Editor mouse grammar (Piano Roll / Playlist)
 #include "EditorGestureTests.inc"

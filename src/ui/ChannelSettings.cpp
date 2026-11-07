@@ -69,6 +69,8 @@
 #include "engine/SampleLibrary.h"
 #include "core/SampleFiles.h"
 #include "core/ProjectContents.h"
+#include "core/GpHelm.h"
+#include "core/GpSynth.h"
 
 namespace lynx
 {
@@ -1125,6 +1127,67 @@ public:
             };
             addAndMakeVisible (sampleButton);
             resized(); // (setSize above laid the page out before the button existed)
+        }
+
+        // the GravePain Synth (GravePain port): its sample layer (a folder of root-named WAVs or a .wti) and .helm import
+        if (def.instrument == InstrumentKind::gravepain)
+        {
+            sampleButton.setButtonText (tr ("Sample set..."));
+            const auto path = juce::String::fromUTF8 (def.samplePath.c_str());
+            ui::setHint (sampleButton, path.isEmpty() ? tr ("A folder of WAVs named with their note, or a .wti file") : path);
+            sampleButton.onClick = [this] {
+                chooser = lynx::ui::makeFileChooser (tr ("Sample set"), juce::File(), "*.wti");
+                lynx::ui::launchChooser (chooser, juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles
+                                                      | juce::FileBrowserComponent::canSelectDirectories,
+                                      [safe = juce::Component::SafePointer<ModelPanel> (this)] (const juce::FileChooser& fc) {
+                                          if (safe == nullptr || fc.getResult() == juce::File())
+                                              return;
+                                          const auto chosen = fc.getResult().getFullPathName();
+                                          if (gpsynth::loadSampleFolder (chosen.toStdString()) == nullptr)
+                                          {
+                                              juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::WarningIcon, tr ("Sample set"),
+                                                                                      tr ("No sample could be read from {0}", { fc.getResult().getFileName() }));
+                                              return;
+                                          }
+                                          safe->ref.edit (safe->engine, [path = chosen.toStdString()] (ChannelDef& d) { d.samplePath = path; });
+                                          ui::setHint (safe->sampleButton, chosen);
+                                      });
+            };
+            addAndMakeVisible (sampleButton);
+            helmButton.setButtonText (tr ("Helm preset..."));
+            ui::setHint (helmButton, tr ("Read a .helm preset into this synth"));
+            helmButton.onClick = [this] {
+                chooser = lynx::ui::makeFileChooser (tr ("Helm preset"), juce::File(), "*.helm");
+                lynx::ui::launchChooser (chooser, juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+                                      [safe = juce::Component::SafePointer<ModelPanel> (this)] (const juce::FileChooser& fc) {
+                                          if (safe == nullptr || fc.getResult() == juce::File())
+                                              return;
+                                          std::string problem;
+                                          const auto helm = gpsynth::readHelmFile (fc.getResult().getFullPathName().toStdString(), problem);
+                                          if (! helm)
+                                          {
+                                              juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::WarningIcon, tr ("Helm preset"),
+                                                                                      tr ("Could not read {0}", { fc.getResult().getFileName() }) + juce::newLine
+                                                                                          + juce::String::fromUTF8 (problem.c_str()));
+                                              return;
+                                          }
+                                          safe->ref.edit (safe->engine, [patch = helm->patch, name = helm->name] (ChannelDef& d) {
+                                              d.modelParams = gpsynth::toModelParams (patch);
+                                              if (! name.empty())
+                                                  d.name = name;
+                                          });
+                                          if (! helm->unmapped.empty())
+                                          {
+                                              juce::StringArray lines;
+                                              for (const auto& u : helm->unmapped)
+                                                  lines.add (juce::String::fromUTF8 (u.c_str()));
+                                              juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::InfoIcon, tr ("Helm preset"),
+                                                                                      tr ("Read, without:") + juce::newLine + lines.joinIntoString (juce::newLine));
+                                          }
+                                      });
+            };
+            addAndMakeVisible (helmButton);
+            resized();
         }
 
         // FL's arrangement of the plugin's page (core/PluginLayout.cpp): the knobs at FL's places, faders and
@@ -2190,7 +2253,7 @@ public:
     // little on a designed page, instead of cut with "…" in a narrow window); clear of the sample button
     juce::Rectangle<int> descriptionArea() const
     {
-        const auto right = sampleButton.isVisible() ? getWidth() - 136 : getWidth() - 10;
+        const auto right = helmButton.isVisible() ? getWidth() - 264 : sampleButton.isVisible() ? getWidth() - 136 : getWidth() - 10;
         return { 10, layout != nullptr ? 6 : 2, juce::jmax (40, right - 10), layout != nullptr ? 20 : 30 }; // (the knob grid's captions start at y 32)
     }
 
@@ -2198,6 +2261,8 @@ public:
     {
         if (sampleButton.isVisible())
             sampleButton.setBounds (getWidth() - 128, 4, 120, 24);
+        if (helmButton.isVisible())
+            helmButton.setBounds (getWidth() - 256, 4, 120, 24);
         if (layout != nullptr)
         {
             resizeLayout();
@@ -2648,7 +2713,8 @@ private:
     int stepperDragged = 0;
     int page = 0; // the layout's page shown (pageTabs items switch it; round 168n)
     const plugui::LayoutItem* xyItem = nullptr; // the pad being dragged
-    juce::TextButton sampleButton; // (a Granulizer node: round 165c)
+    juce::TextButton sampleButton; // (a Granulizer node: round 165c; the GravePain Synth's sample set)
+    juce::TextButton helmButton;   // (the GravePain Synth: .helm import)
     std::unique_ptr<juce::FileChooser> chooser;
 };
 
@@ -5126,7 +5192,8 @@ bool isModelKind (InstrumentKind kind) noexcept
            || kind == InstrumentKind::simsynth || kind == InstrumentKind::wasp || kind == InstrumentKind::plucked
            || kind == InstrumentKind::beepmap || kind == InstrumentKind::sawer || kind == InstrumentKind::flkeys
            || kind == InstrumentKind::granulizer || kind == InstrumentKind::drumaxx
-           || kind == InstrumentKind::slayer || kind == InstrumentKind::fruitydance || kind == InstrumentKind::sytrus;
+           || kind == InstrumentKind::slayer || kind == InstrumentKind::fruitydance || kind == InstrumentKind::sytrus
+           || kind == InstrumentKind::gravepain; // (the GravePain port: its designed page, core/GpSynthLayout.cpp)
 }
 
 // The instrument page of a channel or a Patcher node (null: none of its own)
@@ -5427,7 +5494,8 @@ std::unique_ptr<juce::Component> makeChannelSettingsPanel (AudioEngine& engine, 
                  || kind == InstrumentKind::simsynth || kind == InstrumentKind::wasp || kind == InstrumentKind::plucked
                  || kind == InstrumentKind::beepmap || kind == InstrumentKind::sawer || kind == InstrumentKind::flkeys
                  || kind == InstrumentKind::granulizer || kind == InstrumentKind::drumaxx
-                 || kind == InstrumentKind::slayer || kind == InstrumentKind::fruitydance || kind == InstrumentKind::sytrus)
+                 || kind == InstrumentKind::slayer || kind == InstrumentKind::fruitydance || kind == InstrumentKind::sytrus
+                 || kind == InstrumentKind::gravepain)
         return std::make_unique<ModelPanel> (engine, ChannelRef::rack (channel));
 
     return std::make_unique<SettingsPanel> (engine, ChannelRef::rack (channel));

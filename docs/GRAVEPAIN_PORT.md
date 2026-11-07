@@ -25,6 +25,10 @@ already does the job. Branch `gravepain-features`.
 - Flaky upstream test: `vfx_script_late_answers_play_at_the_next_block` (`tests/VfxScript165Tests.inc:399-400`)
   depends on a script thread answering within its 5 ms sleeps; on this machine it fails about 1 run in 5 (run alone,
   5 runs: 4 pass). Not touched by the port; counted as pre-existing.
+- Timer-dependent upstream test: `browser162_search_is_served_before_a_background_pass` (`tests/Browser162Tests.inc:220,
+  244-245`) lists 2551 folders on a fake disk that sleeps 1 ms per listing, within 30 s. Windows sleeps at least one
+  timer tick (15.4 ms measured here at the default resolution), so it needs ~39 s and fails whenever no program has
+  raised the system timer resolution; it passed in the baseline run, when one had. Not touched by the port.
 
 ## Test counts
 
@@ -99,6 +103,35 @@ already does the job. Branch `gravepain-features`.
   major / as written). A chord lane is one progression with one shape and inversion for all bars; per-bar editing
   (GravePain's ChordBar in full) is supported by the core and its text format but has no editor yet.
 - Checks: `LYNX.exe --selftest` result=OK; port checks 7683, 0 failures; full run = the baseline's failures only.
+
+## Step 5: the GravePain Synth as a native instrument
+
+- Sources: `Assets/Scripts/Engine/Synth/` SynthEngine, SynthPatch, SynthEffects, WavetableBank, SampleSet, SynthMacros,
+  SynthFactoryPresets, HelmPatch; `Docs/synth-plan.md`, `Docs/synth-plan-review.md`; tests from SynthEngineTests,
+  SynthExpansionTests, SynthSourcesTests, SynthMacroTests, SynthPresetTests where they apply.
+- New: `src/core/GpSynth.*` (patch table, engine, effects, wavetables, sample sets, the instrument),
+  `src/core/GpSynthBank.cpp` + generated `src/core/GpSynthBank.inc` (sound types, dials, factory presets, LYNX bank),
+  `src/core/GpHelm.*` (.helm import), `src/core/GpSynthLayout.cpp` (the channel page), `tools/gravepain/convert_presets.py`
+  (generates the .inc from GravePain's sources), `tests/GravepainSynthTests.inc`.
+- Registered like LYNX's other native synths: `InstrumentKind::gravepain` (appended), `natives::instrumentEngines()`
+  ("GravePain Synth", own engine, no FL data), `makeInstrument`, the project file id `gravepain`, the automatable
+  parameters (`ModelParamList.inc`), the preset bank (`LynxBankList.inc`), the designed page (`instrumentLayout`).
+- Decisions:
+  - The patch is 150 numbered parameters in `ChannelDef::modelParams` (names, ranges, defaults as GravePain's), so the
+    editor, automation clips, MIDI links and the preset bank reach all of them; the dials are extra automatable
+    parameters ("Bass Squelch", index 1000 + type * 10 + dial) whose value is read back from their first part.
+  - Audio thread: no allocation, no lock (a double-buffered patch published by `configure`, wavetables built on the UI
+    thread, sample sets swapped by pointer); a NaN / infinite voice is cleared and the output is finite (as GravePain's
+    ba9a600). The synth's own arpeggiator and sequence player are not ported: a LYNX channel has its arpeggiator and
+    the Piano roll plays the notes. Synced LFOs / delay follow the project tempo from a free-running beat.
+  - **Not shipped**: GravePain's five `.wtb` banks (their origin is not recorded, so they cannot be shown to be the
+    author's) and the FL Keys multisamples (FL Studio content, clean-room rule). LYNX makes its own band-limited banks
+    instead (Basic shapes: sine > triangle > saw > square; PWM; Harmonics: 1 to 64 partials), 64 frames x 11 mips x 2048
+    by inverse FFT. Presets that read GravePain's Digital / Formant banks use Harmonics / Basic shapes; the four piano
+    presets (FL Keys samples) are left out: 51 factory presets remain.
+  - Sample sets come from the user's own files: a folder of WAVs named with their root, or a .wti over WAVs (read with
+    LYNX's FL Keys `parseWti`, extended rather than duplicated). Raw `.dat` sets are not read.
+  - .helm import is our own reading of Helm's JSON (no Helm code); Helm's arpeggiator is reported as unmapped.
 
 ## Skipped (LYNX covers them)
 
