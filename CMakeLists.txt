@@ -229,6 +229,7 @@ target_sources(lynx_core PRIVATE
     src/core/GpHelm.cpp
     src/core/GpSynthLayout.cpp
     src/core/Launchpad.cpp
+    src/core/SampleMatch.cpp
     src/core/EventEdit.cpp
     src/core/AudioEdit.cpp
     src/core/AudioEditTools.cpp

@@ -60,6 +60,10 @@ struct View
 {
     std::set<std::string> hidden; // ids of the hidden roots (a folder's path, or projectRootId / pluginsRootId)
     ContentFilter filter = ContentFilter::all;
+    // samples that fit the project (GravePain port, core/SampleMatch.h): by the key / tempo their names state
+    bool matchKey = false, matchTempo = false;
+    int keyRoot = -1;      // the key to fit: pitch class, −1 = any key (only samples with a key are then checked)
+    bool keyMinor = false;
     bool open = false;            // the Sample browser window was open (unused for the main Browser)
     int x = 0, y = 0, width = 0, height = 0; // the window's last bounds (0 = default)
 

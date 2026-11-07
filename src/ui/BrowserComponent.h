@@ -61,6 +61,8 @@ public:
     // What this Browser shows (round 163): the content filter, the hidden top-level entries; saved at once.
     const browserview::View& getView() const noexcept { return view; }
     void setContentFilter (browserview::ContentFilter filter);
+    // samples that fit the project's key / tempo by their names (GravePain port, core/SampleMatch.h)
+    void setMatch (bool byKey, int keyRoot, bool keyMinor, bool byTempo);
     void setRootShown (const juce::String& id, bool shown);
     void showAllRoots();
     // The Browser's options menu (the button beside the search box, the panel menu): filter, folders, search index.

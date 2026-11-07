@@ -94,6 +94,8 @@ std::string View::toText() const
 {
     std::ostringstream out;
     out << "filter=" << contentFilterId (filter) << "\n";
+    if (matchKey || matchTempo || keyRoot >= 0)
+        out << "match=" << (matchKey ? 1 : 0) << "," << (matchTempo ? 1 : 0) << "," << keyRoot << "," << (keyMinor ? 1 : 0) << "\n";
     out << "open=" << (open ? 1 : 0) << "\n";
     out << "bounds=" << x << "," << y << "," << width << "," << height << "\n";
     for (const auto& id : hidden)
@@ -124,6 +126,19 @@ View View::fromText (const std::string& text)
             v.filter = contentFilterFromId (value);
         else if (key == "open")
             v.open = value == "1";
+        else if (key == "match")
+        {
+            int n[4] {};
+            char sep = 0;
+            std::istringstream m (value);
+            if (m >> n[0] >> sep >> n[1] >> sep >> n[2] >> sep >> n[3])
+            {
+                v.matchKey = n[0] != 0;
+                v.matchTempo = n[1] != 0;
+                v.keyRoot = n[2] >= 0 && n[2] < 12 ? n[2] : -1;
+                v.keyMinor = n[3] != 0;
+            }
+        }
         else if (key == "hidden" && ! value.empty())
             v.hidden.insert (value);
         else if (key == "bounds")

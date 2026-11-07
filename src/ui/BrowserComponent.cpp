@@ -4,6 +4,7 @@
 #include "engine/FlStudio.h"
 #include "ui/BrowserComponent.h"
 #include "ui/PatternLibraryUi.h"
+#include "core/SampleMatch.h"
 #include "ui/SpeechDialog.h"
 #include "ui/UiTrace.h"
 
@@ -2524,7 +2525,22 @@ void BrowserComponent::saveView() const
 
 bool BrowserComponent::lists (const juce::File& file) const
 {
-    return browserview::listed (file.getFileName().toStdString(), view.filter) || file.isDirectory();
+    if (file.isDirectory())
+        return true;
+    const auto name = file.getFileName().toStdString();
+    if (! browserview::listed (name, view.filter))
+        return false;
+    // samples that fit the project's key / tempo, by what their names state (GravePain port, core/SampleMatch.h)
+    if ((view.matchKey || view.matchTempo) && isAudioFile (file))
+    {
+        samplematch::Filter f;
+        f.byKey = view.matchKey && view.keyRoot >= 0;
+        f.key = { view.keyRoot, view.keyMinor };
+        f.byTempo = view.matchTempo;
+        f.bpm = (float) engine.getSong().bpm;
+        return samplematch::fits (name, f);
+    }
+    return true;
 }
 
 std::shared_ptr<const search::FolderMatches> BrowserComponent::filterMatches() const
@@ -2566,6 +2582,20 @@ void BrowserComponent::setContentFilter (browserview::ContentFilter filter)
         runSearch();
 }
 
+void BrowserComponent::setMatch (bool byKey, int keyRoot, bool keyMinor, bool byTempo)
+{
+    view.matchKey = byKey;
+    view.keyRoot = keyRoot;
+    view.keyMinor = keyMinor;
+    view.matchTempo = byTempo;
+    saveView();
+    refreshViewButton();
+    prunedGeneration = 0;
+    rebuildTree();
+    if (searchBox.getText().trim().isNotEmpty())
+        runSearch();
+}
+
 void BrowserComponent::setRootShown (const juce::String& id, bool shown)
 {
     if (view.shows (id.toStdString()) == shown)
@@ -2591,7 +2621,7 @@ juce::String BrowserComponent::rootId (const juce::File& folder) const
 
 void BrowserComponent::refreshViewButton()
 {
-    const auto filtered = view.filter != browserview::ContentFilter::all;
+    const auto filtered = view.filter != browserview::ContentFilter::all || view.matchKey || view.matchTempo;
     int hidden = 0;
     for (const auto& id : view.hidden)
         hidden += id == browserview::projectRootId || id == browserview::pluginsRootId
@@ -2629,6 +2659,31 @@ void BrowserComponent::addViewItems (juce::PopupMenu& menu)
         });
     }
     menu.addSubMenu (tr ("Show") + ": " + tr (browserview::contentFilterLabel (view.filter)), filters);
+
+    // samples that fit the project, by the key / tempo their names state ("Bass Am 128bpm.wav"; GravePain port)
+    {
+        juce::PopupMenu keys;
+        static const char* const names[] = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
+        keys.addItem (tr ("Off"), true, ! view.matchKey, [safe] {
+            if (safe != nullptr)
+                safe->setMatch (false, safe->view.keyRoot, safe->view.keyMinor, safe->view.matchTempo);
+        });
+        for (int minor = 0; minor < 2; ++minor)
+            for (int root = 0; root < 12; ++root)
+                keys.addItem (juce::String (names[root]) + " " + tr (minor == 1 ? "minor" : "major"), true,
+                              view.matchKey && view.keyRoot == root && view.keyMinor == (minor == 1), [safe, root, minor] {
+                                  if (safe != nullptr)
+                                      safe->setMatch (true, root, minor == 1, safe->view.matchTempo);
+                              });
+        const auto keyText = view.matchKey && view.keyRoot >= 0
+                                 ? juce::String (samplematch::keyName ({ view.keyRoot, view.keyMinor }))
+                                 : tr ("Off");
+        menu.addSubMenu (tr ("Fits the key") + ": " + keyText, keys);
+        menu.addItem (tr ("Fits the project tempo ({0} BPM)", { juce::String (engine.getSong().bpm, 1) }), true, view.matchTempo, [safe] {
+            if (safe != nullptr)
+                safe->setMatch (safe->view.matchKey, safe->view.keyRoot, safe->view.keyMinor, ! safe->view.matchTempo);
+        });
+    }
 
     // which top-level entries are shown and the user's own folders: a window (round 164; a checklist sub-menu before)
     menu.addItem (tr ("Show folders..."), [safe] {
