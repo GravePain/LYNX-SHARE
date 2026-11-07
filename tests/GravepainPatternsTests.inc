@@ -133,12 +133,24 @@ TEST (gp_patterns_seeded_pick_and_lay)
     LayOptions o;
     o.rootNote = 57;
     o.keyRoot = 9;
-    o.keyMinor = true;
+    o.keyScale = 2; // natural minor
     const auto notes = lay (b, o);
     CHECK (notes.size() == 16);
     CHECK (notes[0].key == 57 && notes[1].key == 64 && notes[2].key == 60); // A, E, C
     CHECK (notes[8].start == 2 * 4 * lynx::ppq && notes[8].key == 57);      // round again in bar three
     CHECK (notes[0].length == 2 * lynx::ticksPerStep);
+
+    // the root a pattern lands on in a key: the home, or the relative minor / major
+    PatternRecord minorLine = b;
+    minorLine.minor = true;
+    minorLine.rootNote = 64; // an E minor line
+    CHECK (rootNoteInKey (minorLine, 0, 1) == 69);  // in C major: on A, the relative minor, nearest E4
+    CHECK (rootNoteInKey (minorLine, 9, 2) == 69);  // in A minor: on A
+    PatternRecord majorLine = b;
+    majorLine.minor = false;
+    majorLine.rootNote = 62;
+    CHECK (rootNoteInKey (majorLine, 9, 2) == 60);  // a major line in A minor: on C
+    CHECK (rootNoteInKey (majorLine, -1, 1) == 62); // no key: as written
 }
 
 TEST (gp_patterns_mix)

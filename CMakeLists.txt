@@ -359,6 +359,10 @@ if(LYNX_BUILD_APP)
         HARDENED_RUNTIME_ENABLED FALSE
         PLIST_TO_MERGE "<plist><dict><key>CFBundleName</key><string>LYNX SHARE</string><key>CFBundleDisplayName</key><string>LYNX SHARE</string><key>LSMinimumSystemVersion</key><string>11.0</string><key>NSHighResolutionCapable</key><true/></dict></plist>")
 
+    # the MIDI pattern library (GravePain port) next to the executable, where the app looks for it
+    add_custom_command(TARGET LYNX POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/resources/midi-library" "$<TARGET_FILE_DIR:LYNX>/midi-library")
+
     target_sources(LYNX PRIVATE
         src/Main.cpp
         src/platform/FileTypes.cpp
@@ -464,6 +468,7 @@ if(LYNX_BUILD_APP)
     # workflow P2: note tool dialogs, tool windows, undo history, quick-add palette
     target_sources(LYNX PRIVATE
         src/ui/NoteToolDialogs.cpp
+        src/ui/PatternLibraryUi.cpp
         src/ui/MidiClipboard.cpp
         src/ui/EventEditor.cpp
         src/ui/AudioEditor.cpp

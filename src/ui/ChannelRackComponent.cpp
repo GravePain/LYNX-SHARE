@@ -46,6 +46,7 @@
 #include "core/SoundFont.h"
 #include "core/Vfx.h"
 #include "ui/SoundFontEditor.h"
+#include "ui/PatternLibraryUi.h"
 
 namespace lynx
 {
@@ -2826,7 +2827,8 @@ void ChannelRackComponent::sliceChannel (int channel)
 bool ChannelRackComponent::isInterestedInFileDrag (const juce::StringArray& files)
 {
     for (const auto& f : files)
-        if (SampleLibrary::isSampleFile (juce::File (f)) || juce::File (f).hasFileExtension ("sf2;sf3;sfz"))
+        if (SampleLibrary::isSampleFile (juce::File (f)) || juce::File (f).hasFileExtension ("sf2;sf3;sfz")
+            || patternlib::isLibraryFile (juce::File (f)))
             return true;
 
     return false;
@@ -2842,6 +2844,17 @@ void ChannelRackComponent::filesDropped (const juce::StringArray& files, int x, 
     {
         const juce::File file (f);
 
+        if (file.hasFileExtension ("mid;midi") && patternlib::isLibraryFile (file))
+        {
+            // a pattern from the library (GravePain port): into the channel it was dropped on (else the selected one),
+            // in the current pattern from its start, as written; the Piano roll's drop lays it in the scale box's key
+            const auto channel = target >= 0 ? target : engine.getSelectedChannel();
+            engine.editSong ([&] (Song& s) {
+                if (s.currentPattern >= 0 && s.currentPattern < (int) s.patterns.size() && channel >= 0 && channel < (int) s.channels.size())
+                    patternlib::insertFile (s.patterns[(std::size_t) s.currentPattern], channel, file, -1, 0, 0);
+            });
+            continue;
+        }
         if (file.hasFileExtension ("sf2;sf3;sfz"))
         {
             // a SoundFont: into the LYNX Soundfont channel it was dropped on, else a new channel

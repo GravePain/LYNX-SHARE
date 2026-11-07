@@ -21,6 +21,7 @@ enum class NoteTool
     strum, arpeggiate, flip, randomise, scaleLevels, limit,
     quantize, chop, flam, lfo, claw, articulate, riffMachine, chordProgression,
     euclidean, humanize, noteRepeat // LYNX's versions of FL's piano roll scripts (REA round 143)
+    , patternLibrary, chordDice, melodyDice, riffStages // the GravePain port (docs/GRAVEPAIN_PORT.md)
 };
 
 const char* noteToolTitle (NoteTool tool); // English, for tr()
@@ -32,4 +33,7 @@ std::unique_ptr<juce::Component> makeNoteToolPanel (AudioEngine& engine, NoteToo
 
 // Opens the tool in its own window. `onFinished` runs after Accept or Revert (the note indices changed).
 void showNoteTool (AudioEngine& engine, NoteTool tool, std::vector<int> indices, std::int64_t grid, std::function<void()> onFinished = {});
+
+// The Piano Roll's scale box (root 0..11, notetools::scales index; 0 = none): the key the GravePain tools start in.
+void setNoteToolKey (int root, int scale) noexcept;
 } // namespace lynx

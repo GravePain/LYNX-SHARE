@@ -31,6 +31,7 @@ already does the job. Branch `gravepain-features`.
 | After | Port checks (`LYNX_TEST=gp_`) | Full run |
 |---|---|---|
 | Steps 1-4 | 7679, 0 failures | the baseline's 24 failed checks (+ the flaky VfxScript pair once), nothing new |
+| UI for 2-4 | 7683, 0 failures | the baseline's 24 failed checks, nothing new |
 
 ## Step 1: scales and chords core
 
@@ -80,6 +81,24 @@ already does the job. Branch `gravepain-features`.
   quantize-to-groove. Added only: mirror keeping starts, pitch mirror into the key, levels reset, lengths past 100 %
   (to 4x), chop-to-grid, five built-in grooves. Arp: LYNX's Arpeggiator, not GravePain's.
 - Settings: `RiffSettings` and chord lanes kept as `[section]` blocks in `Pattern::toolSettings`.
+
+## UI for steps 2-4
+
+- New: `src/ui/PatternLibraryUi.*` (the bundled library's place, the dataset cached in the settings folder
+  `patterns/patterns.txt`, the taste in `patterns/taste.txt`, user folders in `pattern-folders.txt`, insertion in key);
+  four Piano roll tools in `src/ui/NoteToolDialogs.cpp` under **Tools › Dice and patterns** (Pattern from the library,
+  Chord dice, Melody dice, Riff stages) using LYNX's note-tool window (live preview, Accept = one undo step); the
+  Browser root **Pattern library** (`BrowserView::RootKind::patternLibrary`); library drops on the Piano roll (in the
+  scale box's key) and on Channel Rack channels (as written).
+- Core: `patterns::rootNoteInKey` (a minor part in a major key lands on the relative minor), `LayOptions::keyScale` (any
+  notetools scale). Tests in `tests/GravepainPatternsTests.inc`.
+- The builds copy `resources/midi-library` next to the executable (`build-win/midi-library`, CMake POST_BUILD).
+- Strings: pt-BR lines for all 61 new strings; the other 13 tables wait in `resources/i18n/pending.keys`, as the
+  project's i18n rule allows.
+- Decisions: the project has no key of its own, so the tools start in the Piano roll's scale box key (no scale: C
+  major / as written). A chord lane is one progression with one shape and inversion for all bars; per-bar editing
+  (GravePain's ChordBar in full) is supported by the core and its text format but has no editor yet.
+- Checks: `LYNX.exe --selftest` result=OK; port checks 7683, 0 failures; full run = the baseline's failures only.
 
 ## Skipped (LYNX covers them)
 

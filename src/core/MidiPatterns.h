@@ -112,7 +112,7 @@ bool mixTakesSecond (Mix mix) noexcept;
 PatternRecord mix (const PatternRecord& a, const PatternRecord* b, Mix how, const PatternRecord* c = nullptr, float busy = -1.0f);
 
 // The record's notes as Piano Roll notes on `channel` from tick `at`, repeated to `bars` (1..4): moved so its root
-// lands on `rootNote`, by octaves into lowest..highest (a rhythm keeps its pitches). `keyRoot` / `keyMinor` given
+// lands on `rootNote`, by octaves into lowest..highest (a rhythm keeps its pitches). `keyRoot` / `keyScale` given
 // (keyRoot >= 0): pitched notes also snap into that key.
 struct LayOptions
 {
@@ -122,9 +122,13 @@ struct LayOptions
     int channel = 0;
     std::int64_t at = 0;
     int keyRoot = -1;
-    bool keyMinor = false;
+    int keyScale = 1;          // notetools::scales() index the pitched notes snap into (1 major, 2 natural minor)
 };
 std::vector<Note> lay (const PatternRecord& r, const LayOptions& options);
+// The note the record's root should land on in a key (root 0..11, notetools::scales index): the key's home, or its
+// relative minor / major when the record leans the other way (a minor line in C major is laid on A), in the octave
+// nearest the record's own root. A rhythm, or keyRoot < 0, keeps its root as written.
+int rootNoteInKey (const PatternRecord& r, int keyRoot, int keyScale);
 
 // The dataset as text (one line a record, tab-separated, notes "step:length:note:velocity"), and back.
 std::string toText (const PatternSet& set);

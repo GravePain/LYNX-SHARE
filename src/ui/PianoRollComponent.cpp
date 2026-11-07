@@ -19,6 +19,7 @@
 #include "ui/BrowserComponent.h"
 #include "ui/Dialogs.h"
 #include "ui/MidiClipboard.h"
+#include "ui/PatternLibraryUi.h"
 #include "engine/Text.h"
 
 #include <optional>
@@ -3013,6 +3014,23 @@ juce::PopupMenu PianoRollComponent::toolsMenu()
     tool (NoteTool::euclidean, nullptr);
     tool (NoteTool::humanize, nullptr);
     tool (NoteTool::noteRepeat, nullptr);
+    // the GravePain port: seeded generators and the pattern library, in the Piano roll's key
+    menu.addSectionHeader (tr ("Dice and patterns"));
+    tool (NoteTool::patternLibrary, nullptr);
+    tool (NoteTool::chordDice, nullptr);
+    tool (NoteTool::melodyDice, nullptr);
+    tool (NoteTool::riffStages, nullptr);
+    menu.addItem (tr ("Add a MIDI folder to the pattern library..."), [] {
+        auto chooser = std::make_shared<juce::FileChooser> (tr ("A folder of MIDI files"), juce::File::getSpecialLocation (juce::File::userMusicDirectory));
+        chooser->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectDirectories, [chooser] (const juce::FileChooser& fc) {
+            if (const auto folder = fc.getResult(); folder.isDirectory())
+            {
+                patternlib::addSourceFolder (folder);
+                patternlib::rebuild();
+                ui::postHint ({ tr ("The pattern library now has {0} patterns", { juce::String ((int) patternlib::dataset().records.size()) }) }, 2500);
+            }
+        });
+    });
     {
         juce::PopupMenu velocity;
         auto choose = [this] (std::function<std::vector<int> (const Pattern&, const std::vector<int>&)> pick) {
@@ -3051,6 +3069,8 @@ void PianoRollComponent::openNoteTool (NoteTool tool)
 
     if (target.empty() && ! noteToolGenerates (tool))
         return;
+
+    setNoteToolKey (scaleRoot(), scaleIndex()); // the dice and the pattern library start in the scale box's key
 
     showNoteTool (engine, tool, target, gridTicks(), [safe = juce::Component::SafePointer<PianoRollComponent> (this)] {
         if (safe != nullptr)
@@ -4365,6 +4385,25 @@ bool PianoRollComponent::loadFile (const juce::File& file)
 {
     if (isScoreFile (file))
         return openScore (file);
+    if (isMidiFile (file) && patternlib::isLibraryFile (file))
+    {
+        // a pattern from the library: into the selected channel at the start of the view, in the scale box's key
+        const auto channel = engine.getSelectedChannel();
+        const auto bar = (std::int64_t) ppq * juce::jmax (1, engine.getSong().beatsPerBar);
+        const auto at = juce::jmax<std::int64_t> (0, (std::int64_t) scrollTicks / bar * bar);
+        const auto root = hasScale() ? scaleRoot() : -1;
+        const auto scale = scaleIndex();
+        std::vector<int> added;
+        engine.editSong ([&] (Song& s) {
+            if (s.currentPattern >= 0 && s.currentPattern < (int) s.patterns.size())
+                added = patternlib::insertFile (s.patterns[(std::size_t) s.currentPattern], channel, file, root, scale, at);
+        });
+        if (added.empty())
+            ui::postHint ({ tr ("That file gave no pattern") }, 2000);
+        else
+            setSelection (added);
+        return true;
+    }
     if (isMidiFile (file))
     {
         juce::String error;

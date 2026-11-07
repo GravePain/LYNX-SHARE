@@ -7,6 +7,9 @@
 
 #include "core/NoteTools.h"
 #include "core/PianoRollTools.h"
+#include "core/ChordDice.h"
+#include "core/RiffStages.h"
+#include "ui/PatternLibraryUi.h"
 #include "engine/FlStudio.h"
 #include "ui/I18n.h"
 #include "ui/Theme.h"
@@ -26,6 +29,11 @@ juce::StringArray pitchClassNames()
 {
     return { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
 }
+
+// the Piano Roll's scale box when the tool opened (setNoteToolKey): root 0..11, notetools::scales index (0 = none)
+int& keyRoot() { static int r = 0; return r; }
+int& keyScale() { static int s = 0; return s; }
+bool keyIsMinor() { return keyScale() == 2 || keyScale() == 3 || keyScale() == 5 || keyScale() == 7 || keyScale() == 8; }
 
 juce::String percent (double v)
 {
@@ -186,7 +194,8 @@ public:
 
         if (hasExtraButton())
         {
-            extraButton.setButtonText (tool == NoteTool::riffMachine ? tr ("Throw dice")
+            extraButton.setButtonText (tool == NoteTool::riffMachine || tool == NoteTool::chordDice || tool == NoteTool::melodyDice || tool == NoteTool::riffStages ? tr ("Throw dice")
+                                       : tool == NoteTool::patternLibrary ? tr ("Another pattern")
                                        : tool == NoteTool::chordProgression ? tr ("Generate")
                                                                             : tr ("New variation"));
             extraButton.onClick = [this] { extraAction(); };
@@ -257,7 +266,8 @@ private:
 
     bool hasExtraButton() const noexcept
     {
-        return tool == NoteTool::randomise || tool == NoteTool::humanize || tool == NoteTool::riffMachine || tool == NoteTool::chordProgression;
+        return tool == NoteTool::randomise || tool == NoteTool::humanize || tool == NoteTool::riffMachine || tool == NoteTool::chordProgression
+               || tool == NoteTool::patternLibrary || tool == NoteTool::chordDice || tool == NoteTool::melodyDice || tool == NoteTool::riffStages;
     }
 
     // --- controls ------------------------------------------------------------------------------
@@ -665,6 +675,92 @@ private:
                 add ({ Control::toggle, tr ("Smooth voicing"), 0, 1, 1, 1 });
                 break;
             }
+            case NoteTool::patternLibrary:
+            {
+                // (the dataset is built on first use: a few seconds for the bundled library, then cached)
+                juce::StringArray anyStyle { tr ("Any") }, anySection { tr ("Any") }, anyRole { tr ("Any") };
+                anyStyle.addArray (patternlib::styles());
+                for (const auto& section : patternlib::sections())
+                    anySection.add (tr (section));
+                for (const auto& r : patternlib::roles())
+                    anyRole.add (tr (r));
+                juce::StringArray keys { tr ("As written") };
+                keys.addArray (pitchClassNames());
+                gp.push_back (add ({ Control::choice, tr ("Style"), 0, 0, 1, 0, {}, anyStyle }));
+                gp.push_back (add ({ Control::choice, tr ("Section"), 0, 0, 1, 0, {}, anySection }));
+                gp.push_back (add ({ Control::choice, tr ("Role"), 0, 0, 1, 0, {}, anyRole }));
+                gp.push_back (add ({ Control::choice, tr ("Key"), 0, 12, 1, keyScale() > 0 ? keyRoot() + 1.0 : 0.0, {}, keys }));
+                gp.push_back (add ({ Control::choice, tr ("Scale"), 0, 1, 1, keyIsMinor() ? 1.0 : 0.0, {}, { tr ("Major"), tr ("Minor") } }));
+                gp.push_back (add ({ Control::choice, tr ("Length"), 0, 3, 1, 2, {}, { tr ("1 bar"), tr ("2 bars"), tr ("4 bars"), tr ("8 bars") } }));
+                break;
+            }
+            case NoteTool::chordDice:
+            {
+                const auto saved = prtools::riff::section (currentToolSettings(), "dice");
+                juce::StringArray progs { tr ("Dice (from the seed)") };
+                for (bool minor : { false, true })
+                    for (const auto& p : prtools::dice::progressions (minor))
+                        progs.add (juce::String (p.name) + (minor ? " (" + tr ("minor") + ")" : juce::String()));
+                juce::StringArray shapes, inversions;
+                for (int i = 0; i < prtools::dice::shapeCount; ++i)
+                    shapes.add (tr (prtools::dice::shapeLabel ((prtools::dice::Shape) i)));
+                for (int i = 0; i < 3; ++i)
+                    inversions.add (tr (prtools::dice::inversionLabel (i)));
+                gp.push_back (add ({ Control::choice, tr ("Key"), 0, 11, 1, (double) keyRoot(), {}, pitchClassNames() }));
+                gp.push_back (add ({ Control::choice, tr ("Scale"), 0, 1, 1, keyIsMinor() ? 1.0 : 0.0, {}, { tr ("Major"), tr ("Minor") } }));
+                gp.push_back (add ({ Control::choice, tr ("Progression"), 0, 0, 1, 0, {}, progs }));
+                gp.push_back (add ({ Control::choice, tr ("Shape"), 0, 0, 1, 0, {}, shapes }));
+                gp.push_back (add ({ Control::choice, tr ("Inversion"), 0, 0, 1, 0, {}, inversions }));
+                gp.push_back (add ({ Control::slider, tr ("Octave"), 2.0, 6.0, 1.0, 3.0, [] (double v) { return "C" + juce::String (juce::roundToInt (v)); } }));
+                gp.push_back (add ({ Control::choice, tr ("Chord length"), 0, 1, 1, 0, {}, { tr ("1 bar"), tr ("2 bars") } }));
+                seed = (std::uint32_t) juce::jmax (1, savedInt (saved, "seed", 1));
+                break;
+            }
+            case NoteTool::melodyDice:
+            {
+                const auto saved = prtools::riff::section (currentToolSettings(), "melody");
+                gp.push_back (add ({ Control::choice, tr ("Key"), 0, 11, 1, (double) keyRoot(), {}, pitchClassNames() }));
+                gp.push_back (add ({ Control::choice, tr ("Scale"), 0, 1, 1, keyIsMinor() ? 1.0 : 0.0, {}, { tr ("Major"), tr ("Minor") } }));
+                gp.push_back (add ({ Control::choice, tr ("Notes"), 0, 2, 1, 1, {}, { "1/4", "1/8", "1/16" } }));
+                gp.push_back (add ({ Control::slider, tr ("Octave"), 2.0, 7.0, 1.0, 4.0, [] (double v) { return "C" + juce::String (juce::roundToInt (v)); } }));
+                gp.push_back (add ({ Control::slider, tr ("Range"), 1.0, 3.0, 1.0, 2.0, [] (double v) { return juce::String (juce::roundToInt (v)) + " " + tr ("octaves"); } }));
+                gp.push_back (add ({ Control::slider, tr ("Home degree"), 1.0, 7.0, 1.0, 1.0, [] (double v) { return juce::String (juce::roundToInt (v)); } }));
+                gp.push_back (add ({ Control::toggle, tr ("Follow the chord lane"), 0, 1, 1, 1 }));
+                gp.push_back (add ({ Control::choice, tr ("Ending"), 0, 2, 1, 0, {}, { tr ("Loops round"), tr ("Lands at the end"), tr ("Lands at bars 2 and 4") } }));
+                seed = (std::uint32_t) juce::jmax (1, savedInt (saved, "seed", 1));
+                break;
+            }
+            case NoteTool::riffStages:
+            {
+                // the pattern's saved settings come back, so the same roll returns
+                const auto s = prtools::riff::fromText (prtools::riff::section (currentToolSettings(), "riff"));
+                seed = s.seed;
+                juce::StringArray grooves;
+                for (int g = 0; g < prtools::riff::grooveCount; ++g)
+                    grooves.add (tr (prtools::riff::grooveLabel ((prtools::riff::Groove) g)));
+                header (tr ("Mirror"));
+                gp.push_back (add ({ Control::toggle, tr ("Mirror"), 0, 1, 1, s.mirrorOn ? 1.0 : 0.0 }));
+                gp.push_back (add ({ Control::toggle, tr ("Turn time over"), 0, 1, 1, s.mirrorTime ? 1.0 : 0.0 }));
+                gp.push_back (add ({ Control::toggle, tr ("Keep the starts"), 0, 1, 1, s.mirrorKeepStarts ? 1.0 : 0.0 }));
+                gp.push_back (add ({ Control::toggle, tr ("Turn pitch over"), 0, 1, 1, s.mirrorPitch ? 1.0 : 0.0 }));
+                header (tr ("Levels"));
+                gp.push_back (add ({ Control::toggle, tr ("Levels"), 0, 1, 1, s.levelsOn ? 1.0 : 0.0 }));
+                gp.push_back (add ({ Control::toggle, tr ("Reset first"), 0, 1, 1, s.levelsReset ? 1.0 : 0.0 }));
+                gp.push_back (add ({ Control::toggle, tr ("Louder and quieter"), 0, 1, 1, s.levelsBipolar ? 1.0 : 0.0 }));
+                gp.push_back (add ({ Control::slider, tr ("Amount"), 0.0, 1.0, 0.01, s.levelsAmount, percent }));
+                gp.push_back (add ({ Control::slider, tr ("Lengths"), 0.0, 1.0, 0.01, s.levelsLength, percent }));
+                header (tr ("Articulation"));
+                gp.push_back (add ({ Control::toggle, tr ("Articulation"), 0, 1, 1, s.artOn ? 1.0 : 0.0 }));
+                gp.push_back (add ({ Control::toggle, tr ("Chop to the grid"), 0, 1, 1, s.artChop ? 1.0 : 0.0 }));
+                gp.push_back (add ({ Control::slider, tr ("Multiply"), 0.25, 4.0, 0.05, s.artMultiply, [] (double v) { return juce::String (v, 2) + "x"; } }));
+                gp.push_back (add ({ Control::slider, tr ("Gap"), 0.0, 0.5, 0.01, s.artGap, stepsText }));
+                gp.push_back (add ({ Control::slider, tr ("Variation"), 0.0, 1.0, 0.01, s.artVariation, percent }));
+                header (tr ("Groove"));
+                gp.push_back (add ({ Control::toggle, tr ("Groove"), 0, 1, 1, s.grooveOn ? 1.0 : 0.0 }));
+                gp.push_back (add ({ Control::choice, tr ("Template"), 0, 0, 1, (double) (int) s.groove, {}, grooves }));
+                gp.push_back (add ({ Control::slider, tr ("Timing"), 0.0, 1.0, 0.01, s.grooveTiming, percent }));
+                break;
+            }
         }
     }
 
@@ -955,14 +1051,174 @@ private:
                 chordNames = tr ("Chords") + ": " + names.joinIntoString ("  ");
                 break;
             }
+            case NoteTool::patternLibrary:
+            {
+                const auto choice = [this] (std::size_t c) { return intValue (gp[c]) == 0 ? juce::String() : getCombo (gp[c])->getText(); };
+                const auto sectionIndex = intValue (gp[1]), roleIndex = intValue (gp[2]);
+                const auto section = sectionIndex == 0 ? juce::String() : patternlib::sections()[sectionIndex - 1];
+                const auto role = roleIndex == 0 ? juce::String() : patternlib::roles()[roleIndex - 1];
+                picked = patternlib::pickFor (choice (0), section, role, seed);
+                if (picked == nullptr)
+                {
+                    status = patternlib::bundledFolder().isDirectory() ? tr ("No pattern fits these choices.")
+                                                                       : tr ("The pattern library was not found next to LYNX.");
+                    break;
+                }
+                removeIndices (p);
+                static const int barCounts[] = { 1, 2, 4, 8 };
+                patternlib::insert (p, channel, *picked, intValue (gp[3]) - 1, intValue (gp[4]) == 1 ? 2 : 1, generatorStart(),
+                                    barCounts[juce::jlimit (0, 3, intValue (gp[5]))]);
+                chordNames = juce::String::fromUTF8 ((picked->set + ": " + picked->name).c_str()) + "  (" + tr (juce::String (picked->role)) + ", "
+                             + juce::String (picked->bars) + " " + tr (picked->bars == 1 ? "bar" : "bars") + ")";
+                break;
+            }
+            case NoteTool::chordDice:
+            {
+                const auto bars = diceBars();
+                const auto tonic = intValue (gp[0]);
+                const bool minor = intValue (gp[1]) == 1;
+                removeIndices (p);
+                const auto low = 12 * (intValue (gp[5]) + 1);
+                prtools::dice::PlaceOptions o;
+                o.channel = channel;
+                o.start = generatorStart();
+                o.barLength = (std::int64_t) ppq * juce::jmax (1, beatsPerBar) * (intValue (gp[6]) == 1 ? 2 : 1);
+                for (const auto& n : prtools::dice::placeChords (bars, prtools::dice::ladder (low, low + 36), tonic, minor, o))
+                    p.notes.push_back (n);
+                chordNames = tr ("Chords") + ": " + juce::String (prtools::dice::chordNames (bars, tonic, minor));
+                if (committing)
+                {
+                    p.toolSettings = prtools::riff::withSection (p.toolSettings, "chords", prtools::dice::toText (bars));
+                    p.toolSettings = prtools::riff::withSection (p.toolSettings, "dice", "seed=" + std::to_string (seed) + "\n");
+                }
+                break;
+            }
+            case NoteTool::melodyDice:
+            {
+                static constexpr std::array<int, 7> majorSteps { 0, 2, 4, 5, 7, 9, 11 }, minorSteps { 0, 2, 3, 5, 7, 8, 10 };
+                const auto tonic = intValue (gp[0]);
+                const bool minor = intValue (gp[1]) == 1;
+                const auto low = 12 * (intValue (gp[3]) + 1);
+                const auto keys = prtools::dice::ladder (low, low + 12 * intValue (gp[4]), tonic, minor);
+                prtools::dice::MelodyOptions o;
+                o.seed = seed;
+                o.resolution = intValue (gp[2]) == 0 ? 4 : intValue (gp[2]) == 1 ? 2 : 1;
+                o.landing = (prtools::dice::Landing) intValue (gp[7]);
+                // the home: the chosen degree of the key, in the ladder's lowest octave
+                const auto degree = (std::size_t) juce::jlimit (0, 6, intValue (gp[5]) - 1);
+                const auto homeKey = low + (tonic + (minor ? minorSteps : majorSteps)[degree]) % 12;
+                o.home = (int) (std::lower_bound (keys.begin(), keys.end(), homeKey) - keys.begin());
+                o.place.channel = channel;
+                o.place.start = generatorStart();
+                o.place.barLength = (std::int64_t) ppq * juce::jmax (1, beatsPerBar);
+                const auto lane = prtools::dice::barsFromText (prtools::riff::section (p.toolSettings, "chords"));
+                std::vector<std::vector<int>> tones;
+                if (on (gp[6]) && lane.size() >= 4)
+                    tones = prtools::dice::chordTones (lane, keys, tonic, minor);
+                removeIndices (p);
+                for (const auto& n : prtools::dice::rollMelody (keys, o, tones.empty() ? nullptr : &tones))
+                    p.notes.push_back (n);
+                if (on (gp[6]) && lane.size() < 4)
+                    status = tr ("No chord lane on this pattern yet: roll Chord dice first, or switch off Follow the chord lane.");
+                if (committing)
+                    p.toolSettings = prtools::riff::withSection (p.toolSettings, "melody", "seed=" + std::to_string (seed) + "\n");
+                break;
+            }
+            case NoteTool::riffStages:
+            {
+                const auto s = riffSettings();
+                const auto home = 12 * 5 + (keyScale() > 0 ? keyRoot() : 0); // the pitch mirror's centre: the key's home, C4..B4
+                prtools::riff::run (p, indices, s, home, keyRoot(), keyScale(), juce::jmax<std::int64_t> (1, grid));
+                if (committing)
+                    p.toolSettings = prtools::riff::withSection (p.toolSettings, "riff", prtools::riff::toText (s));
+                break;
+            }
         }
 
         p.sortNotes();
     }
 
+    // --- the GravePain tools' helpers -----------------------------------------------------------
+
+    std::string currentToolSettings() const
+    {
+        const auto& song = engine.getSong();
+        return patternIndex < (int) song.patterns.size() ? song.patterns[(std::size_t) patternIndex].toolSettings : std::string();
+    }
+
+    static int savedInt (const std::string& section, const std::string& key, int otherwise)
+    {
+        for (const auto& line : juce::StringArray::fromLines (juce::String::fromUTF8 (section.c_str())))
+            if (line.startsWith (juce::String (key) + "="))
+                return line.fromFirstOccurrenceOf ("=", false, false).getIntValue();
+        return otherwise;
+    }
+
+    // the notes the tool replaces (the selection, or the channel's notes) come out first
+    void removeIndices (Pattern& p) const
+    {
+        auto valid = indices;
+        std::sort (valid.begin(), valid.end());
+        valid.erase (std::unique (valid.begin(), valid.end()), valid.end());
+        for (auto it = valid.rbegin(); it != valid.rend(); ++it)
+            if (*it >= 0 && *it < (int) p.notes.size())
+                p.notes.erase (p.notes.begin() + *it);
+    }
+
+    std::vector<prtools::dice::ChordBar> diceBars() const
+    {
+        const bool minor = intValue (gp[1]) == 1;
+        const auto choice = intValue (gp[2]) - 1;
+        const auto& majors = prtools::dice::progressions (false);
+        const auto& minors = prtools::dice::progressions (true);
+        const prtools::dice::Progression& prog = choice < 0 ? prtools::dice::pickProgression (seed, minor)
+                                                 : choice < (int) majors.size() ? majors[(std::size_t) choice]
+                                                                                : minors[(std::size_t) juce::jlimit (0, (int) minors.size() - 1, choice - (int) majors.size())];
+        auto bars = prtools::dice::barsOf (prog);
+        for (auto& b : bars)
+        {
+            b.shape = (prtools::dice::Shape) intValue (gp[3]);
+            b.inversion = intValue (gp[4]);
+            if (prog.minor != minor) // a loop of the other mode: on the relative key, so it stays in the lane's notes
+            {
+                b.tonic = (intValue (gp[0]) + (prog.minor ? 9 : 3)) % 12;
+                b.minor = prog.minor ? 1 : 0;
+            }
+        }
+        return bars;
+    }
+
+    prtools::riff::RiffSettings riffSettings() const
+    {
+        prtools::riff::RiffSettings s;
+        s.seed = seed;
+        s.mirrorOn = on (gp[0]);
+        s.mirrorTime = on (gp[1]);
+        s.mirrorKeepStarts = on (gp[2]);
+        s.mirrorPitch = on (gp[3]);
+        s.levelsOn = on (gp[4]);
+        s.levelsReset = on (gp[5]);
+        s.levelsBipolar = on (gp[6]);
+        s.levelsAmount = (float) value (gp[7]);
+        s.levelsLength = (float) value (gp[8]);
+        s.artOn = on (gp[9]);
+        s.artChop = on (gp[10]);
+        s.artMultiply = (float) value (gp[11]);
+        s.artGap = (float) value (gp[12]);
+        s.artVariation = (float) value (gp[13]);
+        s.grooveOn = on (gp[14]);
+        s.groove = (prtools::riff::Groove) intValue (gp[15]);
+        s.grooveTiming = (float) value (gp[16]);
+        return s;
+    }
+
     void extraAction()
     {
+        if (tool == NoteTool::patternLibrary && picked != nullptr)
+            patternlib::passOver (*picked); // rolled past: picked a little less often from now on
         ++seed;
+        if (tool == NoteTool::chordDice)
+            setValue (gp[2], 0); // a new roll is the dice's own pick
 
         if (tool == NoteTool::riffMachine)
         {
@@ -1061,7 +1317,10 @@ private:
         if (patternStillThere())
         {
             restore();
+            const juce::ScopedValueSetter<bool> saving (committing, true); // the tools' settings are saved with the pattern
             engine.editSong ([this] (Song& s) { apply (s.patterns[(std::size_t) patternIndex]); });
+            if (tool == NoteTool::patternLibrary && picked != nullptr)
+                patternlib::keep (*picked); // kept: picked more often
         }
 
         accepted = true;
@@ -1088,7 +1347,9 @@ private:
     double bpm = 130.0;
     std::vector<Note> originals;
     std::uint32_t seed = 1;
-    bool accepted = false, updating = false;
+    bool accepted = false, updating = false, committing = false;
+    std::vector<std::size_t> gp; // the GravePain tools' control indices, in the order they were added
+    const patterns::PatternRecord* picked = nullptr; // the pattern library's current pick
     std::size_t levelsAt = 0;
     juce::String status, chordNames;
     mutable std::map<juce::String, prtools::Score> scoreCache;
@@ -1130,13 +1391,24 @@ const char* noteToolTitle (NoteTool tool)
         case NoteTool::euclidean: return TR_NOOP ("Euclidean rhythm");
         case NoteTool::humanize: return TR_NOOP ("Humanize");
         case NoteTool::noteRepeat: return TR_NOOP ("Note repeater");
+        case NoteTool::patternLibrary: return TR_NOOP ("Pattern from the library");
+        case NoteTool::chordDice: return TR_NOOP ("Chord dice");
+        case NoteTool::melodyDice: return TR_NOOP ("Melody dice");
+        case NoteTool::riffStages: return TR_NOOP ("Riff stages");
     }
     return "";
 }
 
+void setNoteToolKey (int root, int scale) noexcept
+{
+    keyRoot() = ((root % 12) + 12) % 12;
+    keyScale() = scale < 0 ? 0 : scale;
+}
+
 bool noteToolGenerates (NoteTool tool) noexcept
 {
-    return tool == NoteTool::riffMachine || tool == NoteTool::chordProgression || tool == NoteTool::euclidean;
+    return tool == NoteTool::riffMachine || tool == NoteTool::chordProgression || tool == NoteTool::euclidean
+           || tool == NoteTool::patternLibrary || tool == NoteTool::chordDice || tool == NoteTool::melodyDice;
 }
 
 std::unique_ptr<juce::Component> makeNoteToolPanel (AudioEngine& engine, NoteTool tool, std::vector<int> indices, std::int64_t grid)

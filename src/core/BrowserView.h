@@ -46,7 +46,8 @@ enum class RootKind
     music,
     desktop,
     downloads,
-    user            // a folder the user added
+    user,           // a folder the user added
+    patternLibrary  // the MIDI pattern library shipped with LYNX (GravePain port)
 };
 
 inline constexpr const char* projectRootId = "@project";

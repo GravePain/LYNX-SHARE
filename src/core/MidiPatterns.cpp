@@ -10,6 +10,7 @@
 #include <sstream>
 #include <unordered_set>
 
+#include "core/NoteTools.h"
 #include "core/Scales.h"
 #include "core/SmfRead.h"
 
@@ -891,7 +892,7 @@ std::vector<Note> lay (const PatternRecord& r, const LayOptions& o)
             }
         }
     }
-    const scales::Key key { o.keyRoot, o.keyMinor ? scales::naturalMinor : scales::major };
+    const scales::Key key { o.keyRoot, o.keyScale };
     for (int from = 0; from < total; from += window)
         for (const auto& n : r.notes)
         {
@@ -918,6 +919,21 @@ std::vector<Note> lay (const PatternRecord& r, const LayOptions& o)
         }
     std::stable_sort (out.begin(), out.end(), [] (const Note& x, const Note& y) { return x.start != y.start ? x.start < y.start : x.key < y.key; });
     return out;
+}
+
+int rootNoteInKey (const PatternRecord& r, int keyRoot, int keyScale)
+{
+    if (keyRoot < 0 || r.isRhythm())
+        return r.rootNote;
+    const auto deg = scales::degrees (scales::Key { keyRoot, keyScale });
+    const bool keyMinor = std::find (deg.begin(), deg.end(), 3) != deg.end() && std::find (deg.begin(), deg.end(), 4) == deg.end();
+    int target = keyRoot % 12;
+    if (r.minor && ! keyMinor)
+        target = (target + 9) % 12; // the relative minor
+    else if (! r.minor && keyMinor)
+        target = (target + 3) % 12; // the relative major
+    const int shift = ((target - pitchClass (r.rootNote)) % 12 + 18) % 12 - 6; // -6..5: the nearest octave
+    return std::clamp (r.rootNote + shift, 0, 127);
 }
 
 // ---- text form ---------------------------------------------------------------------------------

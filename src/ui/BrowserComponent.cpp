@@ -3,6 +3,7 @@
 #include "ui/QuickPick.h"
 #include "engine/FlStudio.h"
 #include "ui/BrowserComponent.h"
+#include "ui/PatternLibraryUi.h"
 #include "ui/SpeechDialog.h"
 #include "ui/UiTrace.h"
 
@@ -2988,6 +2989,9 @@ void BrowserComponent::rebuildRoots()
     add (tr ("Mixer presets (FL)"), data.getChildFile ("Patches").getChildFile ("Mixer presets"), RootKind::flPresets);
     pluginpresetui::presetsRoot().createDirectory(); // (the plugin window saves presets there; round 162d)
     add (tr ("Plugin presets"), pluginpresetui::presetsRoot(), RootKind::pluginPresets);
+    // the MIDI pattern library shipped with LYNX: style folders of parts named by section and role; a part dropped on
+    // the Piano roll goes in at the scale box's key (GravePain port, docs/GRAVEPAIN_PORT.md)
+    add (tr ("Pattern library"), patternlib::bundledFolder(), RootKind::patternLibrary);
     add (tr ("Documents"), juce::File::getSpecialLocation (juce::File::userDocumentsDirectory), RootKind::documents);
     add (tr ("Music"), juce::File::getSpecialLocation (juce::File::userMusicDirectory), RootKind::music);
     add (tr ("Desktop"), juce::File::getSpecialLocation (juce::File::userDesktopDirectory), RootKind::desktop);

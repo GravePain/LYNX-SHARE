@@ -70,3 +70,56 @@ of them, after the ones you use) and their own Playlist tracks (16 of them).
 - Stand-ins are saved next to the project in `Stand-ins/`. A part that did not change is not rendered again.
 - The package keeps every plugin's settings (opaque, as the plugin saved them). Nothing is uploaded anywhere.
 - Both sides should use the same LYNX SHARE version (the open summary warns when they differ).
+
+## Dice and patterns: start a part in the key
+
+Four Piano roll tools write notes for you, all in the key chosen in the Piano roll's scale box (Key and Scale can be
+changed in each tool). They are under **Tools › Dice and patterns**. Each opens a small window that previews on the
+pattern as you change it: **Accept** keeps the notes as one undo step, **Cancel** puts back what was there. With notes
+selected, they replace the selection; with none, they write on the selected channel from the start of the bar.
+
+Every tool is **seeded**: the same seed and the same settings give the same notes, on any computer. **Throw dice**
+rolls a new seed. The seed and the settings are saved with the pattern, so the roll you kept comes back the next time
+you open the tool on that pattern.
+
+### Pattern from the library
+
+LYNX ships with a library of MIDI parts, *GravePain Originals*: 2,659 one-part files in 14 styles (Afro, Ambient, DnB,
+Funk, Garage, HipHop, House, LoFi, Pop, Rock, Synthwave, Techno, Trance, Trap), for the Intro, Verse, Chorus, Break,
+Fill and Outro, played by drums, bass, chords, pads, leads, plucks and bells. They are original material, free to use
+in your songs.
+
+- Choose a **Style**, a **Section** and a **Role** (or leave any of them on *Any*), the **Key**, the **Scale** and the
+  **Length**. A pattern that fits is laid in the key: its root moves to the key's home (a minor line in a major key goes
+  to the relative minor) and its notes snap into the scale. Drum parts keep their notes.
+- **Another pattern** picks another one. LYNX remembers what you keep and what you roll past, and from then on picks
+  the patterns you keep more often (never always, never never). This is kept in LYNX's settings folder
+  (`patterns/taste.txt`), not in the project.
+- The library is also in the **Browser** as **Pattern library**. Drag a file onto the Piano roll and it goes in at the
+  scale box's key; onto a channel of the Channel Rack and it goes into that channel as written.
+- **Tools › Dice and patterns › Add a MIDI folder to the pattern library...** adds your own MIDI files. Each file is
+  cut into patterns of up to four bars, one per part (a drum part one per drum). The role and section are read from the
+  file and track names (`House 03 Verse Bass F#m.mid`), else from the instrument the part was written for.
+
+### Chord dice
+
+Rolls a chord progression from the loops songs are built on (the common ones come up more often), or plays one you
+choose in **Progression**. **Shape** sets triads, 7ths, sus2 / sus4, 5ths, 6ths, add9, 9ths, 11ths or 13ths, and
+**Inversion** the root position or an inversion. Each chord is voiced close to the one before, so the hand barely
+moves, and a chord repeated in the next bar is held. Accept also keeps the chords as the pattern's **chord lane**,
+which the Melody dice can follow.
+
+### Melody dice
+
+Rolls a one-note-at-a-time tune over four bars, on the key's notes from **Octave** over **Range** octaves, at 1/4, 1/8
+or 1/16. It starts on the **Home degree** and comes back to it, moves mostly by step, and its bars 3 and 4 answer bars 1
+and 2. With **Follow the chord lane** on, every note on a beat is a note of the chord under it. **Ending** can make the
+tune land on a chord note at the end (or at bars 2 and 4) instead of looping round.
+
+### Riff stages
+
+Shapes the selected notes in four stages, run in order: **Mirror** (turn time over, or keep the starts and play the
+pitches in reverse order; turn pitch over about the key's home, staying in the key), **Levels** (reset to one velocity
+first, then wander louder and quieter, or only quieter, and vary the lengths), **Articulation** (multiply the lengths up
+to 4x, take a gap off every note, vary them, chop held notes into repeats on the grid) and **Groove** (straight, swing
+8ths, swing 16ths, laid back or pushed, by a timing amount). For an arpeggio, use **Tools › Arpeggiate**.
