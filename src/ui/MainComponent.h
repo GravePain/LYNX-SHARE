@@ -28,6 +28,7 @@
 #include "ui/Updater.h"
 #include "ui/ValueControl.h"
 #include "ui/Workspace.h"
+#include "ui/LaunchpadController.h"
 
 namespace lynx
 {
@@ -311,6 +312,7 @@ private:
     void showPatternMenu();
 
     AudioEngine& engine;
+    std::unique_ptr<LaunchpadController> launchpad; // a Novation Launchpad (GravePain port); the real app only
 
     IconButton newButton { "new", Icon::newFile }, openButton { "open", Icon::open }, saveButton { "save", Icon::save },
         exportButton { "export", Icon::exportAudio }, undoButton { "undo", Icon::undo }, redoButton { "redo", Icon::redo };

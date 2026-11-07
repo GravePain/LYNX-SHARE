@@ -118,6 +118,8 @@ MainComponent::MainComponent (AudioEngine& e, bool restoreUserSettings)
       browser (e)
 {
     heldKeys.setSender ([this] (int channel, int key, float velocity, bool on) { engine.sendLiveNote (channel, key, velocity, on, true); });
+    if (restoreUserSettings) // (not for tests and snapshots: no devices there)
+        launchpad = std::make_unique<LaunchpadController> (engine);
     connectBrowser (browser);
     addChildComponent (updateBar);
     updateBar.onVisibilityChanged = [this] { resized(); };
@@ -5835,6 +5837,24 @@ juce::PopupMenu MainComponent::getMenuForIndex (int barIndex, const juce::String
         // the Settings window's pages (Settings › General gathers the app options that were menu items here)
         menu.addItem (tr ("Audio settings..."), [this] { openSettings ((int) SettingsPage::audio); });
         menu.addItem (tr ("MIDI settings...") + shortcutText ("view.midiSettings"), [this] { openSettings ((int) SettingsPage::midi); });
+        if (launchpad != nullptr)
+        {
+            // a Novation Launchpad driven by LYNX: patterns, notes in key, steps, the light show (GravePain port)
+            juce::PopupMenu lp;
+            lp.addItem (tr ("Use a Launchpad"), true, launchpad->isEnabled(), [this] { launchpad->setEnabled (! launchpad->isEnabled()); });
+            lp.addItem (launchpad->isConnected() ? tr ("Connected: {0}", { launchpad->deviceName() }) : tr ("No Launchpad found"), false, false, [] {});
+            lp.addItem (tr ("Look for it again"), launchpad->isEnabled(), false, [this] { launchpad->lookAgain(); });
+            lp.addItem (tr ("Light show"), launchpad->isConnected(), false, [this] { launchpad->showLights(); });
+            juce::PopupMenu keys;
+            static const char* const names[] = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
+            for (int root = 0; root < 12; ++root)
+            {
+                keys.addItem (juce::String (names[root]) + " " + tr ("major"), [this, root] { launchpad->setKey (root, 1); });
+                keys.addItem (juce::String (names[root]) + " " + tr ("minor"), [this, root] { launchpad->setKey (root, 2); });
+            }
+            lp.addSubMenu (tr ("Notes mode key"), keys);
+            menu.addSubMenu (tr ("Launchpad"), lp);
+        }
         menu.addItem (tr ("General settings..."), [this] { openSettings ((int) SettingsPage::general); });
         menu.addItem (tr ("Theme (colors, background)..."), [this] { openSettings ((int) SettingsPage::theme); });
         menu.addItem (tr ("File settings (search folders)..."), [this] { openSettings ((int) SettingsPage::files); });

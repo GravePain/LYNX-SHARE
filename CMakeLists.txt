@@ -228,6 +228,7 @@ target_sources(lynx_core PRIVATE
     src/core/GpSynthBank.cpp
     src/core/GpHelm.cpp
     src/core/GpSynthLayout.cpp
+    src/core/Launchpad.cpp
     src/core/EventEdit.cpp
     src/core/AudioEdit.cpp
     src/core/AudioEditTools.cpp
@@ -473,6 +474,7 @@ if(LYNX_BUILD_APP)
     target_sources(LYNX PRIVATE
         src/ui/NoteToolDialogs.cpp
         src/ui/PatternLibraryUi.cpp
+        src/ui/LaunchpadController.cpp
         src/ui/MidiClipboard.cpp
         src/ui/EventEditor.cpp
         src/ui/AudioEditor.cpp

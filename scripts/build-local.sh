@@ -30,7 +30,7 @@ CORE="$CORE src/core/NoteTools.cpp src/core/PianoRollTools.cpp src/core/EventEdi
 # Loop Starter, local (round 168b)
 CORE="$CORE src/core/LoopStarter.cpp"
 # GravePain port: scales, MIDI pattern dataset, dice, riff stages (docs/GRAVEPAIN_PORT.md)
-CORE="$CORE src/core/Scales.cpp src/core/SmfRead.cpp src/core/MidiPatterns.cpp src/core/PatternTaste.cpp src/core/ChordDice.cpp src/core/RiffStages.cpp src/core/GpSynth.cpp src/core/GpSynthBank.cpp src/core/GpHelm.cpp src/core/GpSynthLayout.cpp"
+CORE="$CORE src/core/Scales.cpp src/core/SmfRead.cpp src/core/MidiPatterns.cpp src/core/PatternTaste.cpp src/core/ChordDice.cpp src/core/RiffStages.cpp src/core/GpSynth.cpp src/core/GpSynthBank.cpp src/core/GpHelm.cpp src/core/GpSynthLayout.cpp src/core/Launchpad.cpp"
 # start-up sound (procedural)
 CORE="$CORE src/core/StartupSound.cpp"
 # speech synthesizer: .speech files, LYNX voice (round 168b)

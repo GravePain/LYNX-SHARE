@@ -147,3 +147,30 @@ The channel window has five pages:
 The wavetables are LYNX's own (Basic shapes, PWM, Harmonics). For the sample layer, point the channel's sample at a
 folder of WAVs named with their note (`Piano C3.wav`, `F#4.wav`) or at a .wti file over WAVs. Helm presets (.helm) can
 be read into the synth's settings (what has no match in it is listed).
+
+## Launchpad
+
+LYNX drives a Novation Launchpad X, Mini MK3 or Pro MK3. Turn it on in **Options › Launchpad › Use a Launchpad**; it is
+found when it is plugged in (or use **Look for it again**). While LYNX drives it, its pads do not play notes on their
+own: the round buttons along the top choose what they do.
+
+- **1 Patterns**: each pad is a pattern of the project (its colour). Press one to make it the current pattern and play
+  it in pattern mode; the playing one pulses. The buttons down the right pick the page of 64.
+- **2 Notes**: the pads play the selected channel, in key: each column one note of the scale up, each row three notes
+  up, so a chord lies under three fingers in a line, and nothing out of key is on the board. The root notes are lit.
+  The top and bottom buttons on the right move an octave up and down. Choose the key in **Options › Launchpad ›
+  Notes mode key**.
+- **3 Steps**: the Channel Rack's step sequencer for the current pattern: each row a channel, each column a step
+  (top buttons 5 and 6 move half a bar). The buttons on the right select a row's channel.
+- **4** starts the **light show** (also in the menu); any pad ends it. **7** plays and stops.
+
+## Samples that fit the project
+
+The Browser's view menu (its view button, next to the search box) has two more filters for samples:
+
+- **Fits the key**: only samples in the chosen key or its relative (A minor and C major share their notes) are listed.
+- **Fits the project tempo**: only loops at the project's tempo, or half or double it, are listed; a drum loop may be
+  up to 6 % off, a pitched loop (a bass, a lead) only 1 %, because speeding a loop up also moves its pitch.
+
+They read what a file's name says: a key like `Am`, `F#m`, `C major` or `in Eb`, a tempo like `128bpm` or `BPM 90`.
+A sample whose name says nothing is always listed.

@@ -301,6 +301,16 @@ public:
     juce::String getRecordingStem() const { return recordingStem; }
     // A MIDI message as if a controller had sent it (the --bendrectest of round 167a). Message thread.
     void injectMidiInput (const juce::MidiMessage& message) { handleIncomingMidiMessage (nullptr, message); }
+
+    // A Novation Launchpad driven by LYNX (GravePain port, core/Launchpad.h, ui/LaunchpadController): while capture is
+    // on, the short messages of a Launchpad's MIDI input go to this queue (the controller reads it on the message
+    // thread) instead of playing notes.
+    struct LaunchpadMessage
+    {
+        std::uint8_t status = 0, data1 = 0, data2 = 0;
+    };
+    void setLaunchpadCapture (bool on) noexcept { launchpadCapture.store (on); }
+    bool popLaunchpadMessage (LaunchpadMessage& m) noexcept { return launchpadIn.pop (m); }
     static juce::File defaultRecordingFolder();
     // The take files written since LYNX started (or since forgetRecordings), oldest first. UI thread.
     const std::vector<juce::File>& getSessionRecordings() const noexcept { return sessionRecordings; }
@@ -773,6 +783,8 @@ private:
     juce::AudioProcessorGraph graph;
     juce::AudioProcessorPlayer player;
     Transport transport;
+    std::atomic<bool> launchpadCapture { false };
+    SpscQueue<LaunchpadMessage, 512> launchpadIn; // (one producer: the Launchpad's own input's MIDI thread)
     MidiSyncIo midiSync; // (before the MIDI callbacks and the audio callback use it)
     SampleLibrary samples;
     LiveEventQueue liveEvents;   // UI -> audio

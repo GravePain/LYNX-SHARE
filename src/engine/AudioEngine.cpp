@@ -1,6 +1,7 @@
 #include "engine/AudioEngine.h"
 
 #include "core/LiveSession.h"
+#include "core/Launchpad.h"
 
 #include "core/SessionIds.h"
 #include "core/StandIns.h"
@@ -1941,6 +1942,15 @@ void AudioEngine::handleIncomingMidiMessage (juce::MidiInput* source, const juce
     }
     if (locked >= 0)
         device.target = locked;
+
+    // a Launchpad LYNX drives: its pads are the controller's, not notes (GravePain port)
+    if (source != nullptr && launchpadCapture.load (std::memory_order_relaxed) && m.getRawDataSize() == 3
+        && launchpad::modelOfPort (source->getName().toStdString()) != nullptr)
+    {
+        const auto* raw = m.getRawData();
+        launchpadIn.push ({ raw[0], raw[1], raw[2] });
+        return;
+    }
 
     if (! device.enabled)
         return;

@@ -133,6 +133,40 @@ already does the job. Branch `gravepain-features`.
     LYNX's FL Keys `parseWti`, extended rather than duplicated). Raw `.dat` sets are not read.
   - .helm import is our own reading of Helm's JSON (no Helm code); Helm's arpeggiator is reported as unmapped.
 
+## Step 6: Launchpad support
+
+- Sources: `Engine/Midi/LaunchpadX.cs`, `LaunchpadLightShow.cs`, `App/LaunchpadGrid.cs`, `Engine/Grid/LedColour.cs`;
+  tests from LedColourTests.
+- New: `src/core/Launchpad.*` (the device protocol, LED colours, the light show, the surface's modes; no JUCE),
+  `src/ui/LaunchpadController.*` (the ports, the timer, applying the actions), `tests/GravepainLaunchpadTests.inc`;
+  `AudioEngine::setLaunchpadCapture` / `popLaunchpadMessage` (a Launchpad's input goes to the controller, not to notes);
+  Options > Launchpad in the main menu.
+- Models: Launchpad X, Mini MK3 and Pro MK3 (the same Programmer Mode protocol; only the sysex device byte differs).
+  The DAW port (MIDIIN2 / "DAW") is never the one driven.
+- Decisions: GravePain's Launchpad drove its own loop grid (GridSurface), which LYNX does not have; the surface is
+  mapped onto LYNX's own model instead: Patterns (the pads launch patterns, page by page), Notes (step 1's in-key
+  layout on the selected channel; the notes are injected as MIDI so they go where a keyboard's would), Steps (the
+  Channel Rack's step sequencer of the current pattern). The light show is GravePain's seven effects, seeded (Unity's
+  Random became a seeded generator, Perlin noise a value noise). GravePain's "to Ableton" forwarding is not ported (a
+  LYNX feature would be MIDI Out). The light show starts from the menu; the idle timer was not carried over.
+- Not verified on hardware here (no Launchpad on this machine): the protocol bytes are tested, the device was not.
+
+## Step 7: phone pad
+
+- Skipped at the user's request.
+
+## Step 8: sample-browser matching
+
+- Sources: `Engine/Content/KeyRules.cs`, `TempoRules.cs`, `SoundTags.cs`, `AudioTags.cs`; tests from RulesTests and
+  BrowserTests where they apply.
+- New: `src/core/SampleMatch.*`, `tests/GravepainMatchTests.inc`; `browserview::View` gains the match settings; the
+  Browser's view menu gains "Fits the key" and "Fits the project tempo".
+- LYNX had nothing of this (its browser filters by file kind and searches names), so nothing was duplicated.
+- Decisions: GravePain read keys and tempos from its library's tags; LYNX's samples have none, so they are read from
+  the file names (`Am`, `F#m`, `C major`, `in Eb`, `128bpm`, `BPM 90`, a number in a loop's name). A file that states
+  nothing passes the filter. The length-from-header reader (WAV / AIFF / Ogg) and the tempo guess from a loop's length
+  are in core but not used by the filter (reading every file while the tree paints would be slow).
+
 ## Skipped (LYNX covers them)
 
 _To be filled as compared: VoiceEffects vs Tune, TimeStretch, ColumnEffects vs Sentry/Ember/Crest, FlScore,
